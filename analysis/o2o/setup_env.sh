@@ -14,7 +14,9 @@ TORCH_INDEX="${2:-https://download.pytorch.org/whl/cu121}"
 MUJOCO_DIR="$HOME/.mujoco/mujoco210"
 
 echo "==> conda env at $ENV_PREFIX (python 3.10 + GL libs for mujoco-py)"
-conda create -p "$ENV_PREFIX" -c conda-forge -y \
+# --override-channels: use ONLY conda-forge, so we never touch the Anaconda
+# defaults channels (avoids their Terms-of-Service prompt on fresh machines).
+conda create -p "$ENV_PREFIX" -c conda-forge --override-channels -y \
   python=3.10 glew glfw mesalib patchelf
 
 # shellcheck disable=SC1091
