@@ -28,8 +28,9 @@ echo "==> system GL/OSMesa dev headers for mujoco-py compile"
 # (e.g. VESSL) install via apt; on a no-sudo cluster (greenbeard) the conda-forge
 # mesalib/glew above already provide them, so skip quietly.
 if command -v apt-get >/dev/null 2>&1 && [ "$(id -u)" = "0" ]; then
+  # noble (24.04) dropped libgl1-mesa-glx; libgl-dev is the version-safe GL dev pkg.
   apt-get update -qq && apt-get install -y -qq \
-    libosmesa6-dev libgl1-mesa-glx libglew-dev libglfw3-dev patchelf || \
+    libosmesa6-dev libgl-dev libglew-dev libglfw3-dev patchelf || \
     echo "   (apt install failed — falling back to conda-forge GL libs)"
 fi
 
