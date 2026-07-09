@@ -23,6 +23,16 @@ conda create -p "$ENV_PREFIX" -c conda-forge --override-channels -y \
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$ENV_PREFIX"
 
+echo "==> system GL/OSMesa dev headers for mujoco-py compile"
+# mujoco-py compiles an OSMesa shim needing GL/osmesa.h. On a root container
+# (e.g. VESSL) install via apt; on a no-sudo cluster (greenbeard) the conda-forge
+# mesalib/glew above already provide them, so skip quietly.
+if command -v apt-get >/dev/null 2>&1 && [ "$(id -u)" = "0" ]; then
+  apt-get update -qq && apt-get install -y -qq \
+    libosmesa6-dev libgl1-mesa-glx libglew-dev libglfw3-dev patchelf || \
+    echo "   (apt install failed — falling back to conda-forge GL libs)"
+fi
+
 echo "==> mujoco210 binaries"
 if [ ! -d "$MUJOCO_DIR" ]; then
   mkdir -p "$HOME/.mujoco"
