@@ -1,0 +1,13 @@
+{
+  "env": "hopper-medium-replay-v2",
+  "ad_module": "svdd",
+  "stage": "train_complete",
+  "hidden_dim": 256,
+  "latent_dim": 128,
+  "epochs_ad": 200,
+  "lr_ad": 0.0001,
+  "weight_decay_ae": 0.0005,
+  "weight_decay_svdd": 5e-07,
+  "svdd_tag": "",
+  "timestamp": "2026-06-24T08:42:34"
+}
