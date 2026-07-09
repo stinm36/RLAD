@@ -27,3 +27,7 @@ DSEBM/saves/
 
 # Misc large/non-code files
 Offline_RL__CoRL_.pdf
+data/
+analysis/*/logs/
+runs_o2o/
+*.tar.gz

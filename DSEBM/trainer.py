@@ -101,7 +101,27 @@ class Trainer:
 
     def energy(self, x, y):
         return 0.5 * torch.sum(torch.square(x - self.b_prime)) - torch.sum(y)
-    
+
+    def energy_per_sample(self, x):
+        """Per-sample DSEBM energy. Returns shape (N,).
+
+            E(x) = 0.5 * ||x - b'||^2 - sum_j f(x)_j ,   f = self.model
+
+        Unlike `energy` (which sums over the whole batch into a single scalar
+        for the autograd-based training loss), this keeps one energy per point
+        — required for per-(state,action) scoring: penalty and score plots.
+
+        `self.b_prime` is stored as (batch, dim); DSEBM's b' is a single
+        (dim,) data-space bias, so we collapse the batch-tied axis by averaging.
+        """
+        b_prime = self.b_prime
+        if b_prime.dim() == 2:
+            b_prime = b_prime.mean(dim=0)               # (dim,)
+        y = self.model(x)                               # (N, D)
+        recon = 0.5 * torch.square(x - b_prime).sum(dim=-1)   # (N,)
+        potential = y.sum(dim=-1)                       # (N,)
+        return recon - potential                        # (N,)
+
     def loss(self, X, fx_noise):
         out = torch.square(X - fx_noise)
         out = torch.sum(out, dim=-1)
@@ -112,5 +132,14 @@ class Trainer:
         # dsebm = DSEBM(obs_dim, action_dim, hidden_dim = args.hidden_dim).to(device)
         sd = torch.load(os.path.join(self.args.ad_save_path, self.args.env, 'checkpoint.pth'))
         self.model.load_state_dict(sd['model_state_dict'])
-        
+        # Restore the learned data-space bias b'; without this, energy scoring
+        # uses the random xavier init from __init__ and is wrong.
+        if 'b_prime' in sd:
+            bp = sd['b_prime'].to(self.device)
+            if bp.shape == self.b_prime.shape:
+                self.b_prime.data = bp
+            else:
+                # checkpoint batch size differs from current — resize then copy
+                self.b_prime = Parameter(bp)
+        self.model.eval()   # BatchNorm/dropout-free here, but keep inference mode explicit
         # return dsebm

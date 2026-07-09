@@ -97,6 +97,11 @@ class GPUReplayBuffer(ReplayBuffer):
         self._size = min(self._size + n, self.max_size)
         self.terminate_episode()
 
+    def add_paths(self, paths):
+        """Bulk-add a list of rollout paths (used during online collection)."""
+        for path in paths:
+            self.add_path(path)
+
     def terminate_episode(self):
         pass
 
