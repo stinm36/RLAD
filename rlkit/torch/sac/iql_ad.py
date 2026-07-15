@@ -92,6 +92,15 @@ class IQLADTrainer(TorchTrainer):
         self.clip_score = clip_score
         self.beta = beta
         self.quantile = quantile
+        self.discrete = False  # required by BatchRLAlgorithm
+
+    def eval_q_custom(self, custom_policy, data_batch, q_function=None):
+        """Mean Q under the policy — required by BatchRLAlgorithm eval logging."""
+        if q_function is None:
+            q_function = self.qf1
+        obs = data_batch['observations']
+        new_obs_actions, *_ = self.policy(obs, reparameterize=True, return_log_prob=True)
+        return float(q_function(obs, new_obs_actions).mean().detach().cpu().numpy())
 
     def train_from_torch(self, batch):
         rewards   = batch['rewards']
