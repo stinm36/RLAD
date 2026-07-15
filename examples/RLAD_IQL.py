@@ -118,6 +118,15 @@ def experiment(args, variant):
     eval_path_collector = MdpPathCollector(eval_env, eval_policy)
     expl_path_collector = MdpPathCollector(expl_env, policy)
     replay_buffer = GPUReplayBuffer(variant['replay_buffer_size'], expl_env)
+    if args.offline:
+        # rlkit-style OFFLINE (batch RL): load the full D4RL dataset into the
+        # replay buffer; no environment collection. d4rl.qlearning_dataset keys
+        # (observations/actions/rewards/next_observations/terminals) match
+        # GPUReplayBuffer.add_path.
+        dataset_d4rl = d4rl.qlearning_dataset(eval_env)
+        replay_buffer.add_path(dataset_d4rl)
+        print(f"[offline] loaded {replay_buffer._size} transitions into replay buffer "
+              f"(batch_rl=True, no online collection)")
 
     trainer = IQLADTrainer(
         env=eval_env,
@@ -169,6 +178,9 @@ if __name__ == "__main__":
     parser.add_argument('--qf_lr',          type=float,    default=3e-4)
     parser.add_argument('--policy_lr',      type=float,    default=3e-4)
     parser.add_argument('--batch_size',     type=int,      default=512)
+    parser.add_argument('--offline',        type=str2bool, default=True,
+                        help='True = offline batch RL (load D4RL into buffer, no env '
+                             'collection); False = online collection')
 
     # AD shared
     parser.add_argument('--ad_module',      type=str,      default='svdd')
@@ -220,15 +232,16 @@ if __name__ == "__main__":
         algorithm='RLOCC-IQL',
         env_name=args.env,
         layer_size=256,
-        replay_buffer_size=int(1e6),
+        replay_buffer_size=int(2e6),
         algorithm_kwargs=dict(
             num_epochs=args.nepochs,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
-            num_expl_steps_per_train_loop=1000,
-            min_num_steps_before_training=1000,
+            num_expl_steps_per_train_loop=(0 if args.offline else 1000),
+            min_num_steps_before_training=(0 if args.offline else 1000),
             max_path_length=1000,
             batch_size=args.batch_size,
+            batch_rl=args.offline,
         ),
         trainer_kwargs=dict(
             discount=0.99,
